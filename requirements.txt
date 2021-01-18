@@ -1,0 +1,6 @@
+# testing
+pytest==4.5.0
+pytest-cov==2.7.1
+pytest-xdist==1.28.0
+pytest-benchmark==3.2.2
+pytest-profiling==1.7.0

@@ -1,0 +1,28 @@
+CITY_OWNED_EXCLUSION_FILTERS = {
+    "owner_1": [
+        "CITY OF PHILA",
+        "PHILA HOUSING AUTHORITY",
+        "CITY OF PHILADELPHIA",
+        "PHILADELPHIA HOUSING",
+        "REDEVELOPMENT AUTHORITY",
+        "REDEVELOPMENT AUTHORITY O",
+        "SCHOOL DISTRICT OF PHILA",
+        "PHILADELPHIA HOUSING AUTH",
+        "PHILA HOUSING AUTHORITY",
+        "PHILADELPHIA LAND BANK",
+        "PHILADELPHIA HOUSING DEVE",
+        "CITY OC PHILA",
+        "CITY HALL ANNEX",
+    ],
+    "mailing_street": [
+        "12 S 23RD ST",
+        "1401 JOHN F KENNEDY BLVD",
+        "790 CITY HALL",
+        "CITY HALL ANNEX",
+        "CITY HALL RM 784",
+        "CITY HALL",
+        "723 CITY HALL ANNEX",
+        "3100 PENROSE FERRY RD",
+    ],
+}
+

@@ -1,0 +1,23 @@
+version: '3'
+services:
+  phillydb:
+    build: .
+    image: phillydb
+    entrypoint: phillydb
+    volumes:
+      - .:/app
+  python:
+    image: phillydb
+    entrypoint: |
+      python
+    volumes:
+      - .:/app
+    depends_on:
+      - phillydb
+
+  test:
+    image: phillydb
+    entrypoint: py.test -n0
+    volumes:
+      - .:/app
+      - /app/tests/__pycache__/
