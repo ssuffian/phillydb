@@ -296,6 +296,7 @@ class PropertiesPde(PhiladelphiaDataTable):
             "elementary_school",
             "middle_school",
             "high_school",
+            "parcel_number",
         ]
 
     def _get_sql_for_query_by_opa_account_numbers(

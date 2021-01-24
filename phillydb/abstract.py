@@ -3,6 +3,11 @@ import pandas as pd
 import requests
 
 from .exclusion_filters import CITY_OWNED_EXCLUSION_FILTERS
+from .additional_links import (
+    get_street_view_link,
+    get_atlas_link,
+    get_property_phila_gov_link,
+)
 
 
 def remove_city_owned_properties(df):
@@ -54,6 +59,7 @@ class PhiladelphiaDataTable(ABC):
             "mailing_address_1",
             "mailing_address_2",
             "mailing_city_state",
+            "parcel_number",
         ]
 
     def list(self, limit, where_sql):
@@ -129,9 +135,13 @@ class PhiladelphiaDataTable(ABC):
 
     def get_odb_link(self):
         return (
-            "https://www.opendataphilly.org/dataset/"
-            + self.open_data_philly_table_url_name
-        ) if self.open_data_philly_table_url_name else None
+            (
+                "https://www.opendataphilly.org/dataset/"
+                + self.open_data_philly_table_url_name
+            )
+            if self.open_data_philly_table_url_name
+            else None
+        )
 
     def get_cartodb_link(self):
         return (
