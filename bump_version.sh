@@ -34,5 +34,5 @@ echo "git push"
 echo ""
 echo "rm -r dist build phillydb.egg-info"  # reset build dirs
 echo "git checkout v${NEW_VERSION}"
-echo "python setup.py upload"  # requires PyPI credentials
+echo "python3 -m twine upload dist/*"  # requires PyPI credentials
 echo "git checkout master"

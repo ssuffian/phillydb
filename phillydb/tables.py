@@ -39,6 +39,8 @@ class Properties(PhiladelphiaDataTable):
             "mailing_address_2",
             "mailing_city_state",
             "parcel_number",
+            "year_built",
+            "year_built_estimate"
         ]
 
     def _get_sql_for_query_by_opa_account_numbers(
