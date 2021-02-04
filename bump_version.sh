@@ -7,7 +7,7 @@ NEW_VERSION=$2  # e.g., 0.0.1
 NEW_VERSION_LENGTH=$(printf "%s" "$NEW_VERSION" | wc -c)
 DASHES=$(printf "%${NEW_VERSION_LENGTH}s" | sed 's/ /-/g')
 
-echo "git checkout master"
+echo "git checkout main"
 echo "git pull"
 echo "git checkout -b release/v${NEW_VERSION}"
 echo ""
@@ -27,7 +27,7 @@ echo ""
 echo "git commit -am \"Bump version\" "
 echo "git tag v${NEW_VERSION}"
 echo "git push -u origin release/v${NEW_VERSION} --tags"
-echo "git checkout master"
+echo "git checkout main"
 echo "git pull"
 echo "git merge release/v${NEW_VERSION}"
 echo "git push"
@@ -35,4 +35,4 @@ echo ""
 echo "rm -r dist build phillydb.egg-info"  # reset build dirs
 echo "git checkout v${NEW_VERSION}"
 echo "python3 -m twine upload dist/*"  # requires PyPI credentials
-echo "git checkout master"
+echo "git checkout main"
