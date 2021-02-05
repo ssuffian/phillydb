@@ -244,6 +244,8 @@ class RealEstateTransfers(PhiladelphiaDataTable):
             "unit_num",
             "receipt_date",
             "recording_date",
+            "document_id",
+            "document_type"
         ]
 
         self.dt_col = "receiptdate"
