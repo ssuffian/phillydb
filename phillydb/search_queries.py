@@ -1,4 +1,8 @@
 from abc import ABC
+from phillydb.exceptions import (
+    SearchMethodNotImplementedError,
+    SearchTypeNotImplementedError,
+)
 
 
 def construct_search_query(
@@ -15,7 +19,7 @@ def construct_search_query(
     search_method: str
         One of: ['contains', 'starts with', 'ends with', 'equals']
     search_type: str
-        One of: ['mailing address', 'owner', 'address (and others w/ same owner)',
+        One of: ['mailing_address', 'owner', 'address (and others w/ same owner)',
             'address (and others w/ same mailing address)'
             ]
     """
@@ -30,7 +34,7 @@ def construct_search_query(
     elif search_method == "equals":
         search_query = search_query
     else:
-        raise ValueError(f"Can not currently support search_method: {search_method}")
+        raise SearchMethodNotImplementedError(search_method)
 
     if search_type == "owner":
         opa_account_numbers_sql = f"""
@@ -46,7 +50,7 @@ def construct_search_query(
                     legalname LIKE '{search_query}' OR business_name LIKE '{search_query}'
                 )
         """
-    elif search_type == "mailing address":
+    elif search_type == "mailing_address":
         opa_account_numbers_sql = f"""
         SELECT opp.parcel_number FROM opa_properties_public opp
             WHERE (
@@ -54,7 +58,7 @@ def construct_search_query(
                 OR mailing_street LIKE '{search_query}'
             )
         """
-    elif search_type == "address (and others w/ same owner)":
+    elif search_type == "location_by_owner":
         opa_account_numbers_sql = f"""
          SELECT opp2.parcel_number FROM opa_properties_public opp1, opa_properties_public opp2 
             WHERE opp1.location LIKE '{search_query}' AND (
@@ -62,7 +66,7 @@ def construct_search_query(
                 OR opp1.owner_1 = opp2.owner_2 OR opp1.owner_2 = opp2.owner_1
             )
         """
-    elif search_type == "address (and others w/ same mailing address)":
+    elif search_type == "location_by_mailing_address":
         opa_account_numbers_sql = f"""
          SELECT opp2.parcel_number FROM opa_properties_public opp1, opa_properties_public opp2 
             WHERE opp1.location LIKE '{search_query}' AND ( 
@@ -73,50 +77,6 @@ def construct_search_query(
             )
         """
     else:
-        raise ValueError(f"Can not currently support search_type: {search_type}")
+        raise SearchTypeNotImplementedError(search_type)
 
     return opa_account_numbers_sql
-
-
-"""
-class SearchMethod(ABC):
-    def __init__(self, name, description):
-        self.name = name
-        self.description = description
-
-
-class SearchMethodContains(SearchMethod):
-    return super().__init("contains", "contains")
-
-
-class SearchMethodStartsWith(SearchMethod):
-    return super().__init("starts_with", "starts with")
-
-
-class SearchMethodEndsWith(SearchMethod):
-    return super().__init("ends_with", "ends with")
-
-
-class SearchType(ABC):
-    def __init__(self, name, description):
-        self.name = name
-        self.description = description
-
-
-class SearchTypeOwner(SearchType):
-    return super().__init__("owner", "owner")
-
-
-class SearchTypeMailingAddress(SearchType):
-    return super().__init__("mailing_address", "mailing address")
-
-
-class SearchTypeAddressByOwner(SearchType):
-    return super().__init__("address_by_owner", "address (and others w/ same owner)")
-
-
-class SearchTypeAddressByMailingAddress(SearchType):
-    return super().__init__(
-        "address_by_mailing_address", "address (and others w/ same mailing address)"
-    )
-"""
