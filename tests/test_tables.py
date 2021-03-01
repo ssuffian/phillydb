@@ -63,6 +63,39 @@ def test_all_tables_metadata_urls(
     opa_account_numbers, table_obj, pytestconfig, monkeypatch
 ):
     maybe_monkeypatch_response(monkeypatch, pytestconfig)
-    assert requests.get(table_obj.get_cartodb_link()).status_code == 200
-    if table_obj.get_odb_link():
-        assert requests.get(table_obj.get_odb_link()).status_code == 200
+    for link in table_obj.data_links:
+        assert requests.get(link).status_code == 200
+
+
+def test_query_by_single_str_column(monkeypatch, pytestconfig):
+    property_obj = tables.Properties()
+    result_columns = ["location", "parcel_number"]
+    maybe_monkeypatch_response(
+        monkeypatch,
+        pytestconfig,
+        result_columns + property_obj.city_owned_prop_filter_cols,
+    )
+    df = property_obj.query_by_single_str_column(
+        search_column="location",
+        search_to_match="100",
+        search_method="starts with",
+        result_columns=result_columns,
+        limit=10,
+    )
+    assert not df.empty
+
+    license_obj = tables.Licenses()
+    result_columns = ["licensetype", "opa_account_num"]
+    maybe_monkeypatch_response(
+        monkeypatch,
+        pytestconfig,
+        result_columns + license_obj.city_owned_prop_filter_cols,
+    )
+    df = license_obj.query_by_single_str_column(
+        search_column="licensetype",
+        search_to_match="Re",
+        search_method="starts with",
+        result_columns=result_columns,
+        limit=10,
+    )
+    assert not df.empty

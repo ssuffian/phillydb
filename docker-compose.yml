@@ -21,3 +21,12 @@ services:
     volumes:
       - .:/app
       - /app/tests/__pycache__/
+
+  jupyter:
+    image: phillydb
+    entrypoint: jupyter notebook tables/ --ip=0.0.0.0 --port=${HOST_PORT_JUPYTER:-8888} --allow-root --no-browser
+    volumes:
+      - .:/app
+      - /app/tests/__pycache__/
+    depends_on:
+      - phillydb

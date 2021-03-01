@@ -8,10 +8,18 @@ from .additional_links import (
     get_atlas_link,
     get_property_phila_gov_link,
 )
+from .search_queries import search_method_sql
 
 
 def remove_city_owned_properties(df):
+    city_owned_required_cols = CITY_OWNED_EXCLUSION_FILTERS.keys()
     for column, values in CITY_OWNED_EXCLUSION_FILTERS.items():
+        if column not in df.columns:
+            raise ValueError(
+                f"{column} not in results. You must "
+                f"request {city_owned_required_cols} columns "
+                "in order to remove city-owned properties."
+            )
         removal_query = f"{column}.str.strip() not in {tuple(values)}"
         df = df.query(removal_query)
     return df
@@ -34,7 +42,23 @@ def _get_query_result(query_str):
     return query_result
 
 
-class PhiladelphiaDataTable(ABC):
+def get_query_result_df(sql, columns, remove_all_city_owned_properties, dt_column=None):
+    query_result = _get_query_result(sql)
+    df = pd.DataFrame(query_result["rows"], columns=query_result["fields"].keys())
+    df = df.sort_values(columns, ascending=False)
+    if dt_column:
+        df.insert(0, "_year", pd.to_datetime(df[dt_column]).dt.year)
+    if remove_all_city_owned_properties:
+        df = remove_city_owned_properties(df)
+    return df
+
+
+class RealEstateTaxRevenue(ABC):
+    def __init__(self):
+        self.tool_data_link = "https://www.phila.gov/revenue/realestatetax/"
+
+
+class PhiladelphiaCartoDataTable(ABC):
     def __init__(
         self,
         cartodb_table_name,
@@ -49,6 +73,8 @@ class PhiladelphiaDataTable(ABC):
         self.dt_column = None
         self.open_data_philly_table_url_name = open_data_philly_table_url_name
 
+        self.data_links = self._get_data_links()
+
         self.default_opa_properties_public_joined_columns = [
             "location",
             "unit",
@@ -61,6 +87,7 @@ class PhiladelphiaDataTable(ABC):
             "mailing_city_state",
             "parcel_number",
         ]
+        self.city_owned_prop_filter_cols = list(CITY_OWNED_EXCLUSION_FILTERS.keys())
 
     def list(self, limit, where_sql):
         pass
@@ -71,6 +98,7 @@ class PhiladelphiaDataTable(ABC):
         dt_column=None,
         columns=None,
         opa_properties_public_joined_columns=None,
+        remove_all_city_owned_properties=True,
     ):
         """
         Parameters
@@ -107,13 +135,68 @@ class PhiladelphiaDataTable(ABC):
             col_str=col_str,
             joined_col_str=joined_col_str,
         )
-        query_result = _get_query_result(sql)
-        df = pd.DataFrame(query_result["rows"], columns=query_result["fields"].keys())
-        df = df.sort_values(columns, ascending=False)
-        if dt_column:
-            df.insert(0, "_year", pd.to_datetime(df[dt_column]).dt.year)
-        df = remove_city_owned_properties(df)
-        return df
+        return get_query_result_df(
+            sql,
+            dt_column=dt_column,
+            columns=columns,
+            remove_all_city_owned_properties=remove_all_city_owned_properties,
+        )
+
+    def query_by_single_str_column(
+        self,
+        search_column,
+        search_to_match,
+        search_method="starts with",
+        result_columns=None,
+        limit=None,
+        remove_all_city_owned_properties=True,
+    ):
+        """
+        A more general way to get results by a single column string match.
+        This is helpful for autocomplete functionality.
+
+        Parameters
+        ----------
+        search_column: str
+            Column to use for querying
+        search_to_match:
+            Value to use for querying to match search_column
+        search_method: str
+            One of: ['contains', 'starts with', 'ends with', 'equals']
+        result_columns:
+            Other columns to output when executing this query
+        """
+        result_columns = result_columns if result_columns else self.default_columns
+        col_str = self._get_column_sql_from_param(result_columns)
+        joined_col_str = self._get_column_sql_from_param(
+            self.city_owned_prop_filter_cols, sql_alias="opa"
+        )
+        search_to_match = search_method_sql(search_to_match, search_method)
+        limit_str = f"LIMIT {limit}" if limit else ""
+        sql = self._get_sql_for_query_by_single_str_column(
+            search_column=search_column,
+            col_str=col_str,
+            joined_col_str=joined_col_str,
+            search_to_match=search_to_match,
+            limit_str=limit_str,
+        )
+        return get_query_result_df(
+            sql,
+            columns=result_columns,
+            remove_all_city_owned_properties=remove_all_city_owned_properties,
+        )
+
+    def _get_sql_for_query_by_single_str_column(
+        self, search_column, col_str, joined_col_str, search_to_match, limit_str,
+    ):
+        return f"""
+        SELECT {col_str}, {joined_col_str}
+        FROM {self.cartodb_table_name} {self.sql_alias}
+        LEFT JOIN opa_properties_public opa 
+            ON {self.sql_alias}.opa_account_num=opa.parcel_number
+        WHERE {self.sql_alias}.{search_column} LIKE '{search_to_match}' 
+        {limit_str}
+        """
 
     def _get_sql_for_query_by_opa_account_numbers(
         self, opa_account_numbers, col_str, joined_col_str
@@ -133,7 +216,17 @@ class PhiladelphiaDataTable(ABC):
         elif type(columns) == list:
             return ", ".join([f"{sql_alias}.{c}" for c in columns])
 
-    def get_odb_link(self):
+    def _get_data_links(self):
+        data_links = []
+        odb_link = self._get_odb_link()
+        if odb_link:
+            data_links.append(odb_link)
+        cartodb_link = self._get_cartodb_link()
+        if cartodb_link:
+            data_links.append(cartodb_link)
+        return data_links
+
+    def _get_odb_link(self):
         return (
             (
                 "https://www.opendataphilly.org/dataset/"
@@ -143,7 +236,7 @@ class PhiladelphiaDataTable(ABC):
             else None
         )
 
-    def get_cartodb_link(self):
+    def _get_cartodb_link(self):
         return (
             "https://cityofphiladelphia.github.io/carto-api-explorer/#"
             + self.cartodb_table_name

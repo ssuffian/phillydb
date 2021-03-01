@@ -1,3 +1,6 @@
+# jupyter
+jupyterlab==3.0.8
+
 # testing
 pytest==4.5.0
 pytest-cov==2.7.1

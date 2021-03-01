@@ -1,4 +1,4 @@
-from .abstract import PhiladelphiaDataTable
+from .abstract import PhiladelphiaCartoDataTable
 
 
 __all__ = (
@@ -16,7 +16,7 @@ __all__ = (
 )
 
 
-class Properties(PhiladelphiaDataTable):
+class Properties(PhiladelphiaCartoDataTable):
     def __init__(self, title="Properties"):
         """
         This query always returns latitude and longitude in addition to any other
@@ -53,8 +53,23 @@ class Properties(PhiladelphiaDataTable):
         WHERE parcel_number in ({opa_account_numbers})
         """
 
+    def _get_sql_for_query_by_single_str_column(
+        self,
+        col_str,
+        joined_col_str,
+        search_column,
+        search_to_match,
+        limit_str,
+        ):
+        return f"""
+        SELECT {col_str}, {joined_col_str}
+        FROM {self.cartodb_table_name} {self.sql_alias}
+        WHERE {self.sql_alias}.{search_column} LIKE '{search_to_match}' 
+        {limit_str}
+        """
 
-class Licenses(PhiladelphiaDataTable):
+
+class Licenses(PhiladelphiaCartoDataTable):
     def __init__(self, title="Licenses"):
         super().__init__(
             cartodb_table_name="business_licenses",
@@ -73,7 +88,7 @@ class Licenses(PhiladelphiaDataTable):
         self.dt_column = "mostrecentissuedate"
 
 
-class Condominiums(PhiladelphiaDataTable):
+class Condominiums(PhiladelphiaCartoDataTable):
     def __init__(self, title="Condominiums"):
         super().__init__(
             cartodb_table_name="condominium", title=title,
@@ -100,7 +115,7 @@ class Condominiums(PhiladelphiaDataTable):
         """
 
 
-class Complaints(PhiladelphiaDataTable):
+class Complaints(PhiladelphiaCartoDataTable):
     def __init__(self, title="Complaints"):
         super().__init__(
             cartodb_table_name="complaints",
@@ -120,7 +135,7 @@ class Complaints(PhiladelphiaDataTable):
         self.dt_col = "complaintdate"
 
 
-class Violations(PhiladelphiaDataTable):
+class Violations(PhiladelphiaCartoDataTable):
     def __init__(self, title="Violations"):
         super().__init__(
             cartodb_table_name="violations",
@@ -136,7 +151,7 @@ class Violations(PhiladelphiaDataTable):
         self.dt_col = "violationdate"
 
 
-class Permits(PhiladelphiaDataTable):
+class Permits(PhiladelphiaCartoDataTable):
     def __init__(self, title="Permits"):
         super().__init__(
             cartodb_table_name="permits",
@@ -162,7 +177,7 @@ class Permits(PhiladelphiaDataTable):
         self.dt_col = "permitissuedate"
 
 
-class Appeals(PhiladelphiaDataTable):
+class Appeals(PhiladelphiaCartoDataTable):
     def __init__(self, title="Appeals"):
         super().__init__(
             cartodb_table_name="appeals",
@@ -194,7 +209,7 @@ class Appeals(PhiladelphiaDataTable):
         self.dt_col = "createddate"
 
 
-class RealEstateTaxDelinquencies(PhiladelphiaDataTable):
+class RealEstateTaxDelinquencies(PhiladelphiaCartoDataTable):
     def __init__(self, title="Real Estate Tax Delinquencies"):
         super().__init__(
             cartodb_table_name="real_estate_tax_delinquencies",
@@ -227,7 +242,7 @@ class RealEstateTaxDelinquencies(PhiladelphiaDataTable):
         """
 
 
-class RealEstateTransfers(PhiladelphiaDataTable):
+class RealEstateTransfers(PhiladelphiaCartoDataTable):
     def __init__(self, title="Real Estate Transfers"):
         super().__init__(
             cartodb_table_name="rtt_summary",
@@ -251,7 +266,7 @@ class RealEstateTransfers(PhiladelphiaDataTable):
         self.dt_col = "receiptdate"
 
 
-class CaseInvestigations(PhiladelphiaDataTable):
+class CaseInvestigations(PhiladelphiaCartoDataTable):
     def __init__(self, title="Case Investigations"):
         super().__init__(
             cartodb_table_name="case_investigations",
@@ -272,7 +287,7 @@ class CaseInvestigations(PhiladelphiaDataTable):
         self.dt_col = "investigationcompleted"
 
 
-class PropertiesPde(PhiladelphiaDataTable):
+class PropertiesPde(PhiladelphiaCartoDataTable):
     def __init__(self, title="Properties (Cleaned)"):
         """
         This query always returns latitude and longitude in addition to any other
