@@ -3,6 +3,12 @@ Development
 
 * Placeholder
 
+0.0.4
+-----
+
+
+* Update bump_version.sh script with `python setup.py sdist`.
+
 0.0.3
 -----
 
