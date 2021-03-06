@@ -1,6 +1,11 @@
 Development
 -----------
 
+* Placeholder
+
+0.0.5
+-----
+
 * Add wheel builder to bump_version.sh
 
 0.0.4
