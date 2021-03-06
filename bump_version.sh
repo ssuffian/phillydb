@@ -34,6 +34,6 @@ echo "git push"
 echo ""
 echo "rm -r dist build phillydb.egg-info"  # reset build dirs
 echo "python3 setup.py sdist"
-echo "pip3 wheel . -w dist"
+echo "pip3 wheel --no-deps . -w dist"
 echo "python3 -m twine upload dist/*"  # requires PyPI credentials
 echo "git checkout main"
