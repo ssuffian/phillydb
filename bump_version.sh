@@ -19,7 +19,7 @@ Development\\
 * Placeholder\\
 \\
 ${NEW_VERSION}\\
-${DASHES}\\
+${DASHES}
 ' CHANGELOG.md"
 echo "rm -f phillydb/__version__.py-e"
 echo "rm -f CHANGELOG.md-e"
@@ -34,5 +34,6 @@ echo "git push"
 echo ""
 echo "rm -r dist build phillydb.egg-info"  # reset build dirs
 echo "python3 setup.py sdist"
+echo "pip3 wheel . -w dist"
 echo "python3 -m twine upload dist/*"  # requires PyPI credentials
 echo "git checkout main"

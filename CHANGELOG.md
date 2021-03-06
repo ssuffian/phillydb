@@ -1,11 +1,10 @@
 Development
 -----------
 
-* Placeholder
+* Add wheel builder to bump_version.sh
 
 0.0.4
 -----
-
 
 * Update bump_version.sh script with `python setup.py sdist`.
 
