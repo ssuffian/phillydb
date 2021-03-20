@@ -1,6 +1,11 @@
 Development
 -----------
 
+* Placeholder
+
+0.0.6
+-----
+
 * Add property-specific links to li, cyclomedia, and atlas.
 * Add RealEstateTaxRevenue endpoint.
 
