@@ -46,17 +46,20 @@ def get_query_result(query_str):
     return query_result
 
 
-def get_query_result_df(
-    sql, columns, remove_all_city_owned_properties=True, dt_column=None
-):
+def get_query_result_df(sql, remove_all_city_owned_properties=True, dt_column=None):
     query_result = get_query_result(sql)
-    df = pd.DataFrame(query_result["rows"], columns=query_result["fields"].keys())
-    df = df.sort_values(columns, ascending=False)
+    columns = list(query_result["fields"].keys())
+    df = pd.DataFrame(query_result["rows"], columns=columns)
+    if columns:
+        df = df.sort_values(columns, ascending=False)
+
+    # adds a year column based on the specified datetime column
     if dt_column:
         df.insert(0, "dt_year", pd.to_datetime(df[dt_column]).dt.year)
+
+    # adds hyperlinks to city websites
     if "location" in columns:
         df["link_cyclomedia_street_view"] = df["location"].apply(get_street_view_link)
-
     for opa_account_col in ["opa_account_num", "parcel_number"]:
         if opa_account_col in columns:
             df["link_property_phila_gov"] = df[opa_account_col].apply(
@@ -104,8 +107,31 @@ class PhiladelphiaCartoDataTable(ABC):
         ]
         self.city_owned_prop_filter_cols = list(CITY_OWNED_EXCLUSION_FILTERS.keys())
 
-    def list(self, limit, where_sql):
-        pass
+    def list(
+        self,
+        columns=None,
+        where_sql=None,
+        order_by_columns=None,
+        limit=None,
+        offset=None,
+        remove_all_city_owned_properties=False,
+    ):
+        select_sql = ','.join(columns) if columns else "*"
+        where_sql = f"WHERE {where_sql}" if where_sql else ""
+        offset_sql = f"OFFSET {offset}" if offset else ""
+        limit_sql = f"LIMIT {limit}" if limit else ""
+        order_by_sql ='ORDER BY ' + ','.join(order_by_columns) if order_by_columns else ""
+        return get_query_result_df(
+            f"""
+            SELECT {select_sql}
+            FROM {self.cartodb_table_name} {self.sql_alias}
+            {where_sql}
+            {limit_sql}
+            {offset_sql}
+            {order_by_sql}
+            """,
+            remove_all_city_owned_properties=remove_all_city_owned_properties,
+        )
 
     def query_by_opa_account_numbers(
         self,
@@ -153,7 +179,6 @@ class PhiladelphiaCartoDataTable(ABC):
         return get_query_result_df(
             sql,
             dt_column=dt_column,
-            columns=columns,
             remove_all_city_owned_properties=remove_all_city_owned_properties,
         )
 
@@ -196,9 +221,7 @@ class PhiladelphiaCartoDataTable(ABC):
             limit_str=limit_str,
         )
         return get_query_result_df(
-            sql,
-            columns=result_columns,
-            remove_all_city_owned_properties=remove_all_city_owned_properties,
+            sql, remove_all_city_owned_properties=remove_all_city_owned_properties,
         )
 
     def _get_sql_for_query_by_single_str_column(

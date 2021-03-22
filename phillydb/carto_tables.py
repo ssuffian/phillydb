@@ -1,4 +1,6 @@
-from .tables import PhiladelphiaCartoDataTable
+import pandas as pd
+
+from .tables import PhiladelphiaCartoDataTable, get_query_result
 
 
 __all__ = (
@@ -43,7 +45,7 @@ class Properties(PhiladelphiaCartoDataTable):
             "category_code_description",
             "homestead_exemption",
             "year_built",
-            "year_built_estimate"
+            "year_built_estimate",
         ]
 
     def _get_sql_for_query_by_opa_account_numbers(
@@ -57,13 +59,8 @@ class Properties(PhiladelphiaCartoDataTable):
         """
 
     def _get_sql_for_query_by_single_str_column(
-        self,
-        col_str,
-        joined_col_str,
-        search_column,
-        search_to_match,
-        limit_str,
-        ):
+        self, col_str, joined_col_str, search_column, search_to_match, limit_str,
+    ):
         return f"""
         SELECT {col_str}, {joined_col_str}
         FROM {self.cartodb_table_name} {self.sql_alias}
@@ -263,10 +260,160 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             "receipt_date",
             "recording_date",
             "document_id",
-            "document_type"
+            "document_type",
         ]
 
         self.dt_col = "receiptdate"
+
+    def infer_property_ownership(self, opa_account_number, recording_date=None):
+        """
+        Based on the owner of the deed at the time, provides the owner name (via the
+        grantee field) for a given date at a given property.
+
+        This is done using the following rules:
+
+        1) Search for all of the DEED transactions that took place at a property
+        2) reconstruct the address from the address components
+        3) compare this reconstructed address with the provided `street_address` col
+            3a) This is because we have found DEEDs that were associated with 
+                an opa_account_num but didn't turn out to be actually for that 
+                property.
+        4) Look at the recording_date provided (or use datetime.now() if None provided)
+        5) Find the most recent DEED grantee before the given recording_date
+            5a) If None is found (the rtt_summary data doesn't start until 1999),
+                then use the earliest grantor in the DEED data provided.
+
+        This function introduces the concept of 'discrepencies' which may be
+        expanded elsewhere in this library. These are assumptions/estimates/deviations
+        that were necessary to return a result, but may not be as reliable as otherwise
+        standard results. 3a and 5a above are examples of discrepencies.
+
+        Parameters
+        ----------
+        opa_account_num: str
+            The opa_account_num for the property.
+        recording_date: str
+            The date to look for property ownership.
+        """
+
+        recording_date = (
+            recording_date if recording_date else datetime.now().isoformat()
+        )
+        df = self.list(
+            columns=[
+                "opa_account_num",
+                "recording_date",
+                "grantors",
+                "grantees",
+                "address_low",
+                "address_low_suffix",
+                "address_high",
+                "address_low_frac",
+                "street_predir",
+                "street_name",
+                "street_suffix",
+                "street_address",
+            ],
+            where_sql=f"""
+            (
+                document_type ='DEED' OR
+                document_type='DEED SHERIFF' OR
+                document_type='DEED OF CONDEMNATION' OR
+                document_type='DEED LAND BANK'
+            ) AND opa_account_num ='{opa_account_number}'
+            """,
+            order_by_columns=["recording_date"],
+        )
+        return self.infer_property_ownership_from_df(
+            df, opa_account_number, recording_date
+        )
+
+    def infer_property_ownership_from_df(self, df, opa_account_number, recording_date):
+        def _compose_address(x):
+            def _strfy(col, prefix=""):
+                return prefix + str(x.loc[col]) if x.loc[col] else ""
+
+            address_low = _strfy("address_low")
+            address_low_suffix = _strfy("address_low_suffix")
+            address_high = _strfy("address_high", prefix="-")
+            address_low_frac = _strfy("address_low_frac")
+            street_predir = _strfy("street_predir")
+            street_name = _strfy("street_name")
+            street_suffix = _strfy("street_suffix")
+            full_address = (
+                f"{address_low}{address_low_suffix}{address_high} {address_low_frac}"
+                f" {street_predir} {street_name} {street_suffix}"
+            )
+            return " ".join(full_address.split())
+
+        discrepencies = []
+        if not df.empty:
+            df["composed_address"] = df.apply(_compose_address, axis=1)
+            if not df[df["composed_address"] != df["street_address"]].empty:
+                # If it finds a non-matching address:
+                data = df[df["composed_address"] != df["street_address"]][
+                    [
+                        "composed_address",
+                        "street_address",
+                        "opa_account_num",
+                        "recording_date",
+                    ]
+                ].to_dict("records")
+                discrepencies.append(
+                    {
+                        "data": data,
+                        "description": "There was an address associated with a DEED "
+                        "that didn't seem to match the property.",
+                    }
+                )
+            df_match = df[df["composed_address"] == df["street_address"]]
+        if df.empty or df_match.empty:
+            discrepencies.append(
+                {
+                    "data": {
+                        "opa_account_num": opa_account_number,
+                        "recording_date": recording_date,
+                    },
+                    "description": "There is no DEED information available for this property.",
+                }
+            )
+            return {
+                "owner": None,
+                "metadata": None,
+                "discrepencies": discrepencies,
+            }
+        else:
+            df_before = df_match[df_match["recording_date"] < recording_date]
+            if df_before.empty:
+                discrepencies.append(
+                    {
+                        "description": (
+                            "The DEED for this property during this time was transferred"
+                            " earlier than this dataset has acccess (before 1999)."
+                        )
+                    }
+                )
+                df_out = df_match.copy().iloc[0]
+                df_out["owner"] = df_out["grantors"]
+            else:
+                df_out = df_before.copy().iloc[-1]
+                df_out["owner"] = df_out["grantees"]
+        output_dict = df_out[
+            [
+                "owner",
+                "grantors",
+                "grantees",
+                "recording_date",
+                "opa_account_num",
+                "composed_address",
+                "street_address",
+            ]
+        ].to_dict()
+        return {
+            "owner": output_dict["owner"],
+            "metadata": output_dict,
+            "discrepencies": discrepencies,
+        }
 
 
 class CaseInvestigations(PhiladelphiaCartoDataTable):
@@ -330,5 +477,3 @@ class PropertiesPde(PhiladelphiaCartoDataTable):
         FROM {self.cartodb_table_name} {self.sql_alias}
         WHERE parcel_number in ({opa_account_numbers})
         """
-
-

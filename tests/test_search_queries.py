@@ -27,6 +27,13 @@ def test_construct_search_query():
 
     sql = construct_search_query(
         search_to_match="LAST FIRST",
+        search_type="location_by_owner",
+        search_method="equals",
+    )
+    assert "LIKE 'LAST FIRST'" in sql.upper()
+
+    sql = construct_search_query(
+        search_to_match="LAST FIRST",
         search_type="location_by_mailing_address",
         search_method="ends with",
     )

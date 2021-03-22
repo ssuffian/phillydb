@@ -7,7 +7,8 @@ def pytest_addoption(parser):
 
 @pytest.fixture
 def test_opa_numbers():
-    return ["883056605", "882391210"]
+    # "888094100" is for condos
+    return ["883056605", "882391210", "888094100"]
 
 
 @pytest.fixture(params=["by_list", "by_sql"])

@@ -1,7 +1,8 @@
 Development
 -----------
 
-* Placeholder
+* Updated testing framework to be more general for future tests.
+* Add RealEstateTransfers().infer_property_ownership() which allows for historical ownership querying.
 
 0.0.6
 -----
