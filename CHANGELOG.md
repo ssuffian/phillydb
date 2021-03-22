@@ -1,6 +1,7 @@
 Development
 -----------
 
+* Add list() to each table.
 * Updated testing framework to be more general for future tests.
 * Add RealEstateTransfers().infer_property_ownership() which allows for historical ownership querying.
 
