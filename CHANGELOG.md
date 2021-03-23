@@ -1,6 +1,11 @@
 Development
 -----------
 
+* Placeholder
+
+0.0.7
+-----
+
 * Add link to table schema sites and a function to get the schema for each table using `get_schema()`.
 * Add list() to each table.
 * Update testing framework to be more general for future tests.
