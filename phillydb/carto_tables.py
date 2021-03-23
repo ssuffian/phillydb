@@ -29,6 +29,8 @@ class Properties(PhiladelphiaCartoDataTable):
             title=title,
             sql_alias="opa",  # other pieces of code rely on this to be 'opa'
             open_data_philly_table_url_name="opa-property-assessments",
+            schema_application_id="550c60d00711ffe12e9efc64",
+            schema_representation_id="55d624fdad35c7e854cb21a4",
         )
         self.default_columns = [
             "location",
@@ -75,6 +77,8 @@ class Licenses(PhiladelphiaCartoDataTable):
             cartodb_table_name="business_licenses",
             title=title,
             open_data_philly_table_url_name="licenses-and-inspections-business-licenses",
+            schema_application_id="5543ca6f5c4ae4cd66d3ff59",
+            schema_representation_id="5e9a06fb98cc42001606f331",
         )
         self.default_columns = [
             "mostrecentissuedate",
@@ -121,6 +125,8 @@ class Complaints(PhiladelphiaCartoDataTable):
             cartodb_table_name="complaints",
             title=title,
             open_data_philly_table_url_name="licenses-and-inspections-service-requests",
+            schema_application_id="5543ca6d5c4ae4cd66d3ff52",
+            schema_representation_id="5e5d50e0fbc9650019b56025",
         )
         self.default_columns = [
             "complaintdate",
@@ -141,6 +147,8 @@ class Violations(PhiladelphiaCartoDataTable):
             cartodb_table_name="violations",
             title=title,
             open_data_philly_table_url_name="licenses-and-inspections-violations",
+            schema_application_id="5543ca7a5c4ae4cd66d3ff86",
+            schema_representation_id="5e99bab227c80700158695b0",
         )
         self.default_columns = [
             "violationdate",
@@ -157,6 +165,8 @@ class Permits(PhiladelphiaCartoDataTable):
             cartodb_table_name="permits",
             title=title,
             open_data_philly_table_url_name="licenses-and-inspections-building-permits",
+            schema_application_id="5543868920583086178c4f8f",
+            schema_representation_id="5e9a01ac801624001585ca11",
         )
         self.default_columns = [
             "permitissuedate",
@@ -183,6 +193,8 @@ class Appeals(PhiladelphiaCartoDataTable):
             cartodb_table_name="appeals",
             title=title,
             open_data_philly_table_url_name="license-and-inspections-appeals",
+            schema_application_id="5543864d20583086178c4e9c",
+            schema_representation_id="5e9751361ed3930016d62645",
         )
         self.default_columns = [
             "createddate",
@@ -215,6 +227,8 @@ class RealEstateTaxDelinquencies(PhiladelphiaCartoDataTable):
             cartodb_table_name="real_estate_tax_delinquencies",
             title=title,
             open_data_philly_table_url_name="property-tax-delinquencies",
+            schema_application_id="57d9643afab162fe2708224e",
+            schema_representation_id="57d9643cfab162fe27082252",
         )
         self.default_columns = [
             "most_recent_year_owed",
@@ -248,6 +262,9 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             cartodb_table_name="rtt_summary",
             title=title,
             open_data_philly_table_url_name="real-estate-transfers",
+            schema_application_id="5a04b8d39202605970a7457d",
+            schema_representation_id="5a04b8d39202605970a74581",
+
         )
         self.default_columns = [
             "receipt_date",
@@ -422,6 +439,8 @@ class CaseInvestigations(PhiladelphiaCartoDataTable):
             cartodb_table_name="case_investigations",
             title=title,
             open_data_philly_table_url_name="licenses-and-inspections-inspections",
+            schema_application_id="5543ca785c4ae4cd66d3ff80",
+            schema_representation_id="5e986970b2c39b001522fb9d",
         )
         self.default_columns = [
             "investigationcompleted",

@@ -38,12 +38,29 @@ def test_all_tables_query_by_opa_account_numbers(
         raise AssertionError(f"{table_obj.title} failed to return a dataframe.")
 
 
-def test_all_tables_metadata_urls(
-    opa_account_numbers, table_obj, pytestconfig, monkeypatch
-):
+def test_all_tables_metadata_urls(table_obj, pytestconfig, monkeypatch):
     maybe_monkeypatch_response(monkeypatch, pytestconfig)
     for link in table_obj.data_links:
         assert requests.get(link).status_code == 200
+
+
+def test_all_tables_table_get_schema(table_obj, monkeypatch, pytestconfig):
+    maybe_monkeypatch_response(
+        monkeypatch,
+        pytestconfig,
+        response_override={
+            "records": [
+                {
+                    "field_17": "abc",
+                    "field_188": "Abc",
+                    "field_20_raw": "Abc\nDef",
+                    "field_20": "Abc<br>Def",
+                }
+            ]
+        },
+    )
+    if table_obj.cartodb_table_name not in ["condominium", "opa_properties_public_pde"]:
+        assert table_obj.get_schema()
 
 
 def test_query_by_single_str_column(monkeypatch, pytestconfig):

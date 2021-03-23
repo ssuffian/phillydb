@@ -1,8 +1,9 @@
 Development
 -----------
 
+* Add link to table schema sites and a function to get the schema for each table using `get_schema()`.
 * Add list() to each table.
-* Updated testing framework to be more general for future tests.
+* Update testing framework to be more general for future tests.
 * Add RealEstateTransfers().infer_property_ownership() which allows for historical ownership querying.
 
 0.0.6

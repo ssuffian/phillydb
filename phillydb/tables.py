@@ -83,6 +83,8 @@ class PhiladelphiaCartoDataTable(ABC):
         title=None,
         sql_alias=None,
         open_data_philly_table_url_name=None,
+        schema_application_id=None,
+        schema_representation_id=None,
     ):
         self.cartodb_table_name = cartodb_table_name
         self.title = title if title else self.name.title()
@@ -90,6 +92,8 @@ class PhiladelphiaCartoDataTable(ABC):
         self.default_columns = []
         self.dt_column = None
         self.open_data_philly_table_url_name = open_data_philly_table_url_name
+        self.schema_application_id = schema_application_id
+        self.schema_representation_id = schema_representation_id
 
         self.data_links = self._get_data_links()
 
@@ -107,6 +111,9 @@ class PhiladelphiaCartoDataTable(ABC):
         ]
         self.city_owned_prop_filter_cols = list(CITY_OWNED_EXCLUSION_FILTERS.keys())
 
+    def __str__(self):
+        return f'{self.title}, {self.cartodb_table_name}'
+
     def list(
         self,
         columns=None,
@@ -116,11 +123,13 @@ class PhiladelphiaCartoDataTable(ABC):
         offset=None,
         remove_all_city_owned_properties=False,
     ):
-        select_sql = ','.join(columns) if columns else "*"
+        select_sql = ",".join(columns) if columns else "*"
         where_sql = f"WHERE {where_sql}" if where_sql else ""
         offset_sql = f"OFFSET {offset}" if offset else ""
         limit_sql = f"LIMIT {limit}" if limit else ""
-        order_by_sql ='ORDER BY ' + ','.join(order_by_columns) if order_by_columns else ""
+        order_by_sql = (
+            "ORDER BY " + ",".join(order_by_columns) if order_by_columns else ""
+        )
         return get_query_result_df(
             f"""
             SELECT {select_sql}
@@ -262,6 +271,9 @@ class PhiladelphiaCartoDataTable(ABC):
         cartodb_link = self._get_cartodb_link()
         if cartodb_link:
             data_links.append(cartodb_link)
+        schema_link = self._get_schema_link()
+        if schema_link:
+            data_links.append(schema_link)
         return data_links
 
     def _get_odb_link(self):
@@ -274,11 +286,40 @@ class PhiladelphiaCartoDataTable(ABC):
             else None
         )
 
+    def _get_schema_link(self, as_json=False):
+        if self.schema_representation_id and self.schema_application_id:
+            if as_json:
+                return (
+                    "https://us-api.knack.com/v1/scenes/scene_142/views/view_287/records/"
+                    f"export/applications/550c60d00711ffe12e9efc64?type=json"
+                    f"&representationdetails_id={self.schema_representation_id}"
+                )
+            else:
+                return (
+                    "https://schema.phila.gov/#home/datasetdetails/"
+                    f"{self.schema_application_id}/representationdetails/"
+                    f"{self.schema_representation_id}/"
+                )
+
     def _get_cartodb_link(self):
         return (
             "https://cityofphiladelphia.github.io/carto-api-explorer/#"
             + self.cartodb_table_name
         )
+
+    def get_schema(self):
+        schema_link = self._get_schema_link(as_json=True)
+        if schema_link:
+            response = requests.get(schema_link)
+            return [
+                {
+                    "column": r["field_17"],
+                    "column_for_display": r["field_188"],
+                    "description_str": r["field_20_raw"],
+                    "description_html": r["field_20"],
+                }
+                for r in response.json()["records"]
+            ]
 
 
 class RealEstateTaxRevenue(ABC):
