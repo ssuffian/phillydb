@@ -17,7 +17,7 @@ def test_all_tables_list(table_obj, pytestconfig, monkeypatch):
     maybe_monkeypatch_response(
         monkeypatch, pytestconfig, output_rows,
     )
-    df = table_obj.list(limit=1)
+    df = table_obj.list(limit=1).to_dataframe()
     if df.empty:
         raise AssertionError(f"{table_obj.title} failed to return a dataframe.")
 
@@ -33,7 +33,9 @@ def test_all_tables_query_by_opa_account_numbers(
     maybe_monkeypatch_response(
         monkeypatch, pytestconfig, output_rows,
     )
-    df = table_obj.query_by_opa_account_numbers(opa_account_numbers=opa_account_numbers)
+    df = table_obj.query_by_opa_account_numbers(
+        opa_account_numbers=opa_account_numbers
+    ).to_dataframe()
     if df.empty:
         raise AssertionError(f"{table_obj.title} failed to return a dataframe.")
 
@@ -66,7 +68,7 @@ def test_all_tables_table_get_schema(table_obj, monkeypatch, pytestconfig):
 def test_query_by_single_str_column(monkeypatch, pytestconfig):
     property_obj = carto_tables.Properties()
     result_columns = ["location", "parcel_number"]
-    columns = result_columns + property_obj.city_owned_prop_filter_cols
+    columns = result_columns
     output_rows = [{c: "2020-01-01 12:00:00" for c in columns}]
     output_rows[0]["parcel_number"] = "1234"
     maybe_monkeypatch_response(
@@ -78,12 +80,12 @@ def test_query_by_single_str_column(monkeypatch, pytestconfig):
         search_method="starts with",
         result_columns=result_columns,
         limit=10,
-    )
+    ).to_dataframe()
     assert not df.empty
 
     license_obj = carto_tables.Licenses()
     result_columns = ["licensetype", "opa_account_num"]
-    columns = result_columns + license_obj.city_owned_prop_filter_cols
+    columns = result_columns
 
     output_rows = [{c: "2020-01-01 12:00:00" for c in columns}]
     output_rows[0]["opa_account_num"] = "1234"
@@ -95,13 +97,14 @@ def test_query_by_single_str_column(monkeypatch, pytestconfig):
         search_method="starts with",
         result_columns=result_columns,
         limit=10,
-    )
+    ).to_dataframe()
     assert not df.empty
 
 
 def test_guess_property_ownership(monkeypatch, pytestconfig):
     rtt_obj = carto_tables.RealEstateTransfers()
     opa_account_number = "883054500"
+    opa_account_number = "881061500"
     maybe_monkeypatch_response(
         monkeypatch,
         pytestconfig,
@@ -160,3 +163,16 @@ def test_guess_property_ownership(monkeypatch, pytestconfig):
         opa_account_number=opa_account_number, recording_date=recording_date
     )
     assert owner_dict["owner"] == None
+
+
+def test_query_with_arcgis(monkeypatch, pytestconfig):
+    real_estate = carto_tables.RealEstateTransfers()
+    #opa_account_number = "881061500"
+    df = real_estate.query_arcgis(
+        """
+        (((ADDRESS_LOW >= 5427 AND ADDRESS_LOW <= 5427)
+        OR (ADDRESS_LOW >= 5400 AND ADDRESS_LOW <= 5427 AND ADDRESS_HIGH >= 27 ))
+        AND STREET_NAME = 'WAYNE' AND STREET_SUFFIX = 'AVE' AND (MOD(ADDRESS_LOW,2) = MOD( 5427,2)))
+        """
+    ).to_dataframe()
+    assert not df.empty

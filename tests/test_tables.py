@@ -2,10 +2,8 @@ import pandas as pd
 import pytest
 
 from phillydb.tables import (
+    PhillyCartoQuery,
     RealEstateTaxRevenue,
-    remove_city_owned_properties,
-    get_query_result,
-    get_query_result_df,
 )
 from phillydb.testing_utils import maybe_monkeypatch_response
 
@@ -21,12 +19,7 @@ def test_real_estate_tax_revenue(opa_account_numbers, monkeypatch, pytestconfig)
     assert not df.empty
 
 
-def test_remove_city_owned_properties():
-    with pytest.raises(ValueError):
-        remove_city_owned_properties(pd.DataFrame())
-
-
-def test_get_query_result(monkeypatch, pytestconfig):
+def test_philly_carto_query_execute_error(monkeypatch, pytestconfig):
     maybe_monkeypatch_response(monkeypatch, pytestconfig,  response_override={})
     with pytest.raises(ValueError):
-        rows = get_query_result("SELECTFROMSQLTABLESYNTAXERROR")
+        rows = PhillyCartoQuery("SELECTFROMSQLTABLESYNTAXERROR").execute()

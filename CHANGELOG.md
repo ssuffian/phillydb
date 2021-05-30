@@ -1,7 +1,9 @@
 Development
 -----------
 
-* Placeholder
+* Remove default removal of city-owned proeprties.
+* Refactor tests.
+* Add address formatting using passyunk.
 
 0.0.7
 -----

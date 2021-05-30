@@ -14,5 +14,5 @@ setup(
     description=about["__description__"],
     entry_points={"console_scripts": [f"{NAME} = {NAME}:cli"]},
     packages=find_packages(),
-    install_requires=["pandas", "requests"],
+    install_requires=["pandas", "requests", "passyunk"],
 )

@@ -1,8 +1,9 @@
 from abc import ABC
-from phillydb.exceptions import (
+from .exceptions import (
     SearchMethodNotImplementedError,
     SearchTypeNotImplementedError,
 )
+
 
 def search_method_sql(search_to_match, search_method):
     if search_method == "contains":
@@ -16,6 +17,7 @@ def search_method_sql(search_to_match, search_method):
     else:
         raise SearchMethodNotImplementedError(search_method)
 
+
 def construct_search_query(
     search_to_match, search_type, search_method="contains",
 ):
@@ -27,14 +29,13 @@ def construct_search_query(
     Parameters
     ----------
     search_to_match: str
+    search_type: str
+        One of: ['mailing_address', 'owner', 'location_by_owner',
+            'location_by_mailing_address'
+            ]
     search_method: str
         One of: ['contains', 'starts with', 'ends with', 'equals']
-    search_type: str
-        One of: ['mailing_address', 'owner', 'address (and others w/ same owner)',
-            'address (and others w/ same mailing address)'
-            ]
     """
-    print("Loading data...")
     search_to_match = search_method_sql(search_to_match.upper(), search_method)
 
     if search_type == "owner":

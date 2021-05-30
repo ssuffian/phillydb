@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .tables import PhiladelphiaCartoDataTable, get_query_result
+from .tables import PhillyCartoTable
 
 
 __all__ = (
@@ -18,7 +18,7 @@ __all__ = (
 )
 
 
-class Properties(PhiladelphiaCartoDataTable):
+class Properties(PhillyCartoTable):
     def __init__(self, title="Properties"):
         """
         This query always returns latitude and longitude in addition to any other
@@ -53,7 +53,7 @@ class Properties(PhiladelphiaCartoDataTable):
     def _get_sql_for_query_by_opa_account_numbers(
         self, opa_account_numbers, col_str, joined_col_str
     ):
-        # no joining necessary
+        # no joining necessary since this is the primary table
         return f"""
         SELECT  {col_str}, ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng
         FROM {self.cartodb_table_name} {self.sql_alias}
@@ -71,7 +71,7 @@ class Properties(PhiladelphiaCartoDataTable):
         """
 
 
-class Licenses(PhiladelphiaCartoDataTable):
+class Licenses(PhillyCartoTable):
     def __init__(self, title="Licenses"):
         super().__init__(
             cartodb_table_name="business_licenses",
@@ -92,7 +92,7 @@ class Licenses(PhiladelphiaCartoDataTable):
         self.dt_column = "mostrecentissuedate"
 
 
-class Condominiums(PhiladelphiaCartoDataTable):
+class Condominiums(PhillyCartoTable):
     def __init__(self, title="Condominiums"):
         super().__init__(
             cartodb_table_name="condominium", title=title,
@@ -119,7 +119,7 @@ class Condominiums(PhiladelphiaCartoDataTable):
         """
 
 
-class Complaints(PhiladelphiaCartoDataTable):
+class Complaints(PhillyCartoTable):
     def __init__(self, title="Complaints"):
         super().__init__(
             cartodb_table_name="complaints",
@@ -138,10 +138,10 @@ class Complaints(PhiladelphiaCartoDataTable):
             "initialinvestigation_date",
             "complaintresolution_date",
         ]
-        self.dt_col = "complaintdate"
+        self.dt_column = "complaintdate"
 
 
-class Violations(PhiladelphiaCartoDataTable):
+class Violations(PhillyCartoTable):
     def __init__(self, title="Violations"):
         super().__init__(
             cartodb_table_name="violations",
@@ -156,10 +156,10 @@ class Violations(PhiladelphiaCartoDataTable):
             "violationcode",
             "violationcodetitle",
         ]
-        self.dt_col = "violationdate"
+        self.dt_column = "violationdate"
 
 
-class Permits(PhiladelphiaCartoDataTable):
+class Permits(PhillyCartoTable):
     def __init__(self, title="Permits"):
         super().__init__(
             cartodb_table_name="permits",
@@ -184,10 +184,10 @@ class Permits(PhiladelphiaCartoDataTable):
             "contractorzip",
             "mostrecentinsp",
         ]
-        self.dt_col = "permitissuedate"
+        self.dt_column = "permitissuedate"
 
 
-class Appeals(PhiladelphiaCartoDataTable):
+class Appeals(PhillyCartoTable):
     def __init__(self, title="Appeals"):
         super().__init__(
             cartodb_table_name="appeals",
@@ -218,10 +218,10 @@ class Appeals(PhiladelphiaCartoDataTable):
             "decisiondate",
         ]
 
-        self.dt_col = "createddate"
+        self.dt_column = "createddate"
 
 
-class RealEstateTaxDelinquencies(PhiladelphiaCartoDataTable):
+class RealEstateTaxDelinquencies(PhillyCartoTable):
     def __init__(self, title="Real Estate Tax Delinquencies"):
         super().__init__(
             cartodb_table_name="real_estate_tax_delinquencies",
@@ -241,7 +241,7 @@ class RealEstateTaxDelinquencies(PhiladelphiaCartoDataTable):
             "building_category",
         ]
 
-        self.dt_col = "most_recent_year_owed"
+        self.dt_column = "most_recent_year_owed"
 
     def _get_sql_for_query_by_opa_account_numbers(
         self, opa_account_numbers, col_str, joined_col_str
@@ -256,7 +256,7 @@ class RealEstateTaxDelinquencies(PhiladelphiaCartoDataTable):
         """
 
 
-class RealEstateTransfers(PhiladelphiaCartoDataTable):
+class RealEstateTransfers(PhillyCartoTable):
     def __init__(self, title="Real Estate Transfers"):
         super().__init__(
             cartodb_table_name="rtt_summary",
@@ -264,7 +264,6 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             open_data_philly_table_url_name="real-estate-transfers",
             schema_application_id="5a04b8d39202605970a7457d",
             schema_representation_id="5a04b8d39202605970a74581",
-
         )
         self.default_columns = [
             "receipt_date",
@@ -280,10 +279,11 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             "document_type",
         ]
 
-        self.dt_col = "receiptdate"
+        self.dt_column = "receiptdate"
 
     def infer_property_ownership(self, opa_account_number, recording_date=None):
-        """
+        """Infer property ownership at a specific point in time
+
         Based on the owner of the deed at the time, provides the owner name (via the
         grantee field) for a given date at a given property.
 
@@ -316,7 +316,7 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
         recording_date = (
             recording_date if recording_date else datetime.now().isoformat()
         )
-        df = self.list(
+        list_result = self.list(
             columns=[
                 "opa_account_num",
                 "recording_date",
@@ -333,7 +333,7 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             ],
             where_sql=f"""
             (
-                document_type ='DEED' OR
+                document_type='DEED' OR
                 document_type='DEED SHERIFF' OR
                 document_type='DEED OF CONDEMNATION' OR
                 document_type='DEED LAND BANK'
@@ -341,6 +341,17 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
             """,
             order_by_columns=["recording_date"],
         )
+        df = list_result.to_dataframe()
+        if df.empty:
+            df_location = Properties().query_by_opa_account_numbers([opa_account_number]).to_dataframe()
+            if not df_location.empty:
+                location_address = df_location.iloc[0]['location']
+
+        """
+        (((ADDRESS_LOW >= 5427 AND ADDRESS_LOW <= 5427)
+        OR (ADDRESS_LOW >= 5400 AND ADDRESS_LOW <= 5427 AND ADDRESS_HIGH >= 27 ))
+        AND STREET_NAME = 'WAYNE' AND STREET_SUFFIX = 'AVE' AND (MOD(ADDRESS_LOW,2) = MOD( 5427,2)))
+        """
         return self.infer_property_ownership_from_df(
             df, opa_account_number, recording_date
         )
@@ -433,7 +444,7 @@ class RealEstateTransfers(PhiladelphiaCartoDataTable):
         }
 
 
-class CaseInvestigations(PhiladelphiaCartoDataTable):
+class CaseInvestigations(PhillyCartoTable):
     def __init__(self, title="Case Investigations"):
         super().__init__(
             cartodb_table_name="case_investigations",
@@ -453,10 +464,10 @@ class CaseInvestigations(PhiladelphiaCartoDataTable):
             "investigationstatus",
         ]
 
-        self.dt_col = "investigationcompleted"
+        self.dt_column = "investigationcompleted"
 
 
-class PropertiesPde(PhiladelphiaCartoDataTable):
+class PropertiesPde(PhillyCartoTable):
     def __init__(self, title="Properties (Cleaned)"):
         """
         This query always returns latitude and longitude in addition to any other

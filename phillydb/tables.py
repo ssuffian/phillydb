@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 import logging
 import pandas as pd
 import requests
 import time
+import sys
+import urllib
 
-from .exclusion_filters import CITY_OWNED_EXCLUSION_FILTERS
+from .labelled_fields import label_city_owned_properties, CITY_OWNED_PROPERTY_FIELDS
 from .additional_links import (
     get_street_view_link,
     get_atlas_link,
@@ -12,21 +15,10 @@ from .additional_links import (
     get_license_inspections_link,
 )
 from .search_queries import search_method_sql
-from .log_config import logger
 
 
-def remove_city_owned_properties(df):
-    city_owned_required_cols = CITY_OWNED_EXCLUSION_FILTERS.keys()
-    for column, values in CITY_OWNED_EXCLUSION_FILTERS.items():
-        if column not in df.columns:
-            raise ValueError(
-                f"{column} not in results. You must "
-                f"request {city_owned_required_cols} columns "
-                "in order to remove city-owned properties."
-            )
-        removal_query = f"{column}.str.strip() not in {tuple(values)}"
-        df = df.query(removal_query)
-    return df
+logging.basicConfig(stream=sys.stdout)
+logger = logging.getLogger(__name__)
 
 
 def _format_opa_account_numbers_sql(opa_account_numbers):
@@ -36,47 +28,141 @@ def _format_opa_account_numbers_sql(opa_account_numbers):
         return opa_account_numbers
 
 
-def get_query_result(query_str):
-    payload = {"q": query_str}
-    query_result = requests.get(
-        "https://phl.carto.com/api/v2/sql", params=payload
-    ).json()
-    if "rows" not in query_result:
-        raise ValueError(query_str, query_result)
-    return query_result
+class PhillyArcgisQuery(ABC):
+    """Query the arcgis server that contains raw open philly data
+
+    Notes
+    -----
+    - It seems to only return a max of 2000 entries per query.
+    """
+
+    def __init__(self, where_sql, table):
+        self.where_sql = where_sql
+        self.table = table
+
+    def execute(self):
+        # out_fields = ",+".join(self.columns + ['opa_account_num']).upper()
+        # going to return all out fields for now
+        out_fields = "*"
+        encoded_sql = urllib.parse.quote_plus(self.where_sql)
+        request_url = (
+            "https://services.arcgis.com/fLeGjb7u4uXqeF9q/ArcGIS/rest/services/"
+            f"{self.table}/FeatureServer/0/query?returnDistinctValues=true"
+            f"&returnGeometry=false&f=json&sqlFormat=standard&where={self.where_sql}"
+            f"&outFields={out_fields}"
+        )
+        query_result = requests.get(request_url)
+        return PhillyArcgisQueryResult(
+            sql=self.where_sql,
+            table=self.table,
+            query_result=query_result,
+            remove_all_city_owned_properties=False,
+            validation_field_to_check="features",
+        )
 
 
-def get_query_result_df(sql, remove_all_city_owned_properties=True, dt_column=None):
-    query_result = get_query_result(sql)
-    columns = list(query_result["fields"].keys())
-    df = pd.DataFrame(query_result["rows"], columns=columns)
-    if columns:
-        df = df.sort_values(columns, ascending=False)
+class PhillyCartoQuery(ABC):
+    """Query the Carto database (modeled after ibis)"""
 
-    # adds a year column based on the specified datetime column
-    if dt_column:
-        df.insert(0, "dt_year", pd.to_datetime(df[dt_column]).dt.year)
+    def __init__(self, sql):
+        self.sql = sql
 
-    # adds hyperlinks to city websites
-    if "location" in columns:
-        df["link_cyclomedia_street_view"] = df["location"].apply(get_street_view_link)
-    for opa_account_col in ["opa_account_num", "parcel_number"]:
-        if opa_account_col in columns:
-            df["link_property_phila_gov"] = df[opa_account_col].apply(
-                get_property_phila_gov_link
+    def execute(self, remove_all_city_owned_properties=False):
+        payload = {"q": self.sql}
+        query_result = requests.get("https://phl.carto.com/api/v2/sql", params=payload)
+        return PhillyCartoQueryResult(
+            sql=self.sql,
+            query_result=query_result,
+            remove_all_city_owned_properties=remove_all_city_owned_properties,
+        )
+
+
+class PhillyQueryResult(ABC):
+    def __init__(
+        self,
+        query_result,
+        remove_all_city_owned_properties=True,
+        validation_field_to_check="rows",
+        **kwargs,
+    ):
+        self.kwargs = kwargs
+        self.sql = kwargs.get("sql")
+        self.query_result = query_result
+        self.results_json = self.query_result.json()
+
+        self.remove_all_city_owned_properties = remove_all_city_owned_properties
+
+        if validation_field_to_check not in self.results_json:
+            raise ValueError(self.sql, self.results_json)
+
+    def to_json(self):
+        return self.results_json
+
+    def _get_dataframe(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def to_dataframe(self, dt_column=None):
+        df = self._get_dataframe()
+        columns = df.columns.values.tolist()
+        df = df if df.empty else df.sort_values(columns, ascending=False)
+
+        # adds a year column based on the specified datetime column
+        if dt_column:
+            df.insert(0, "dt_year", pd.to_datetime(df[dt_column]).dt.year)
+
+        # adds hyperlinks to city websites
+        if "location" in columns:
+            df["link_cyclomedia_street_view"] = df["location"].apply(
+                get_street_view_link
             )
-            df["link_atlas"] = df[opa_account_col].apply(get_atlas_link)
-            df["link_license_inspections"] = df[opa_account_col].apply(
-                get_license_inspections_link
+        for opa_account_col in ["opa_account_num", "parcel_number"]:
+            if opa_account_col in columns:
+                df["link_property_phila_gov"] = df[opa_account_col].apply(
+                    get_property_phila_gov_link
+                )
+                df["link_atlas"] = df[opa_account_col].apply(get_atlas_link)
+                df["link_license_inspections"] = df[opa_account_col].apply(
+                    get_license_inspections_link
+                )
+                break
+
+        '''
+        # No longer removing city-owned properties
+        df = label_city_owned_properties(
+            df, remove=self.remove_all_city_owned_properties
+        )
+        '''
+        return df
+
+
+class PhillyCartoQueryResult(PhillyQueryResult):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _get_dataframe(self):
+        columns = list(self.results_json["fields"].keys())
+        return pd.DataFrame(self.results_json["rows"], columns=columns)
+
+
+class PhillyArcgisQueryResult(PhillyQueryResult):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _get_dataframe(self):
+        df = pd.DataFrame([r["attributes"] for r in self.results_json["features"]])
+        date_cols = [
+            r["name"]
+            for r in self.results_json["fields"]
+            if r["type"] == "esriFieldTypeDate"
+        ]
+        for col in date_cols:
+            df[col] = df[col].apply(
+                lambda x: datetime.fromtimestamp(x / 1000.0) if pd.notnull(x) else x
             )
-            break
-
-    if remove_all_city_owned_properties:
-        df = remove_city_owned_properties(df)
-    return df
+        return df
 
 
-class PhiladelphiaCartoDataTable(ABC):
+class PhillyCartoTable(ABC):
     def __init__(
         self,
         cartodb_table_name,
@@ -87,9 +173,10 @@ class PhiladelphiaCartoDataTable(ABC):
         schema_representation_id=None,
     ):
         self.cartodb_table_name = cartodb_table_name
+        self.arcgis_table_name = cartodb_table_name.upper()
         self.title = title if title else self.name.title()
         self.sql_alias = sql_alias if sql_alias else self.cartodb_table_name[:3]
-        self.default_columns = []
+        self.default_columns = [] # set by subclass
         self.dt_column = None
         self.open_data_philly_table_url_name = open_data_philly_table_url_name
         self.schema_application_id = schema_application_id
@@ -109,10 +196,10 @@ class PhiladelphiaCartoDataTable(ABC):
             "mailing_city_state",
             "parcel_number",
         ]
-        self.city_owned_prop_filter_cols = list(CITY_OWNED_EXCLUSION_FILTERS.keys())
+        self.city_owned_prop_cols = list(CITY_OWNED_PROPERTY_FIELDS.keys())
 
     def __str__(self):
-        return f'{self.title}, {self.cartodb_table_name}'
+        return f"{self.title}, {self.cartodb_table_name}"
 
     def list(
         self,
@@ -121,7 +208,6 @@ class PhiladelphiaCartoDataTable(ABC):
         order_by_columns=None,
         limit=None,
         offset=None,
-        remove_all_city_owned_properties=False,
     ):
         select_sql = ",".join(columns) if columns else "*"
         where_sql = f"WHERE {where_sql}" if where_sql else ""
@@ -130,7 +216,7 @@ class PhiladelphiaCartoDataTable(ABC):
         order_by_sql = (
             "ORDER BY " + ",".join(order_by_columns) if order_by_columns else ""
         )
-        return get_query_result_df(
+        return PhillyCartoQuery(
             f"""
             SELECT {select_sql}
             FROM {self.cartodb_table_name} {self.sql_alias}
@@ -138,9 +224,15 @@ class PhiladelphiaCartoDataTable(ABC):
             {limit_sql}
             {offset_sql}
             {order_by_sql}
-            """,
-            remove_all_city_owned_properties=remove_all_city_owned_properties,
-        )
+            """
+        ).execute(remove_all_city_owned_properties=False)
+
+    def query_arcgis(
+        self, where_sql, columns=None,
+    ):
+        return PhillyArcgisQuery(
+            where_sql=where_sql, table=self.arcgis_table_name,
+        ).execute()
 
     def query_by_opa_account_numbers(
         self,
@@ -156,7 +248,7 @@ class PhiladelphiaCartoDataTable(ABC):
         opa_account_numbers: list of str
             Either a SQL query that returns a list of account numbers,
             or a hardcoed list of account numbersto query for in this table
-        year_dt_column: str
+        dt_column: str
             SQL column to use to extract a year column from. If None uses the default.
         columns: Can either be a list of columns, or the string 'all' which returns
             all available columns. If nothing is passed, it will use the hardcoded
@@ -185,10 +277,8 @@ class PhiladelphiaCartoDataTable(ABC):
             col_str=col_str,
             joined_col_str=joined_col_str,
         )
-        return get_query_result_df(
-            sql,
-            dt_column=dt_column,
-            remove_all_city_owned_properties=remove_all_city_owned_properties,
+        return PhillyCartoQuery(sql).execute(
+            remove_all_city_owned_properties=remove_all_city_owned_properties
         )
 
     def query_by_single_str_column(
@@ -198,7 +288,6 @@ class PhiladelphiaCartoDataTable(ABC):
         search_method="starts with",
         result_columns=None,
         limit=None,
-        remove_all_city_owned_properties=True,
     ):
         """
         A more general way to get results by a single column string match.
@@ -218,7 +307,7 @@ class PhiladelphiaCartoDataTable(ABC):
         result_columns = result_columns if result_columns else self.default_columns
         col_str = self._get_column_sql_from_param(result_columns)
         joined_col_str = self._get_column_sql_from_param(
-            self.city_owned_prop_filter_cols, sql_alias="opa"
+            self.city_owned_prop_cols, sql_alias="opa"
         )
         search_to_match = search_method_sql(search_to_match, search_method)
         limit_str = f"LIMIT {limit}" if limit else ""
@@ -229,9 +318,7 @@ class PhiladelphiaCartoDataTable(ABC):
             search_to_match=search_to_match,
             limit_str=limit_str,
         )
-        return get_query_result_df(
-            sql, remove_all_city_owned_properties=remove_all_city_owned_properties,
-        )
+        return PhillyCartoQuery(sql).execute()
 
     def _get_sql_for_query_by_single_str_column(
         self, search_column, col_str, joined_col_str, search_to_match, limit_str,
@@ -345,7 +432,9 @@ class RealEstateTaxRevenue(ABC):
             )
             opa_account_num_list = [
                 r["parcel_number"]
-                for r in get_query_result(opa_account_numbers_sql)["rows"]
+                for r in PhillyCartoQuery(opa_account_numbers_sql)
+                .execute()
+                .to_json()["rows"]
             ]
         output_dfs = []
         for account_num in opa_account_num_list:

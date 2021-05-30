@@ -3,6 +3,18 @@ from passyunk.parser import PassyunkParser
 
 
 def get_normalized_address(address):
+    """Attempt to normalize an address string using two different cleaning libraries.
+
+    Parameters
+    ----------
+    address: str
+        A string representation of an address.
+
+    Returns
+    -------
+    str
+        A normalized string representation of an address. 
+    """
     p = PassyunkParser()
     # pass through philly-specific passyunk library
     address_pasyunk = p.parse(address)["components"]["output_address"]
