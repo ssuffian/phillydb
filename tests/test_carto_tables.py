@@ -15,7 +15,9 @@ def table_obj(request):
 def test_all_tables_list(table_obj, pytestconfig, monkeypatch):
     output_rows = [{"ABC": "DEF"}]
     maybe_monkeypatch_response(
-        monkeypatch, pytestconfig, output_rows,
+        monkeypatch,
+        pytestconfig,
+        output_rows,
     )
     df = table_obj.list(limit=1).to_dataframe()
     if df.empty:
@@ -31,7 +33,9 @@ def test_all_tables_query_by_opa_account_numbers(
     )
     output_rows = [{c: "2020-01-01 12:00:00" for c in columns}]
     maybe_monkeypatch_response(
-        monkeypatch, pytestconfig, output_rows,
+        monkeypatch,
+        pytestconfig,
+        output_rows,
     )
     df = table_obj.query_by_opa_account_numbers(
         opa_account_numbers=opa_account_numbers
@@ -72,7 +76,9 @@ def test_query_by_single_str_column(monkeypatch, pytestconfig):
     output_rows = [{c: "2020-01-01 12:00:00" for c in columns}]
     output_rows[0]["parcel_number"] = "1234"
     maybe_monkeypatch_response(
-        monkeypatch, pytestconfig, output_rows,
+        monkeypatch,
+        pytestconfig,
+        output_rows,
     )
     df = property_obj.query_by_single_str_column(
         search_column="location",
@@ -156,7 +162,9 @@ def test_guess_property_ownership(monkeypatch, pytestconfig):
 
     opa_account_number = "1234"
     maybe_monkeypatch_response(
-        monkeypatch, pytestconfig, carto_rows=[],
+        monkeypatch,
+        pytestconfig,
+        carto_rows=[],
     )
     recording_date = "2015-06-09"
     owner_dict = rtt_obj.infer_property_ownership(
@@ -167,7 +175,7 @@ def test_guess_property_ownership(monkeypatch, pytestconfig):
 
 def test_query_with_arcgis(monkeypatch, pytestconfig):
     real_estate = carto_tables.RealEstateTransfers()
-    #opa_account_number = "881061500"
+    # opa_account_number = "881061500"
     df = real_estate.query_arcgis(
         """
         (((ADDRESS_LOW >= 5427 AND ADDRESS_LOW <= 5427)

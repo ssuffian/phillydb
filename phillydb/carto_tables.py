@@ -61,7 +61,12 @@ class Properties(PhillyCartoTable):
         """
 
     def _get_sql_for_query_by_single_str_column(
-        self, col_str, joined_col_str, search_column, search_to_match, limit_str,
+        self,
+        col_str,
+        joined_col_str,
+        search_column,
+        search_to_match,
+        limit_str,
     ):
         return f"""
         SELECT {col_str}, {joined_col_str}
@@ -95,7 +100,8 @@ class Licenses(PhillyCartoTable):
 class Condominiums(PhillyCartoTable):
     def __init__(self, title="Condominiums"):
         super().__init__(
-            cartodb_table_name="condominium", title=title,
+            cartodb_table_name="condominium",
+            title=title,
         )
         self.default_columns = [
             "condo_name",
@@ -292,8 +298,8 @@ class RealEstateTransfers(PhillyCartoTable):
         1) Search for all of the DEED transactions that took place at a property
         2) reconstruct the address from the address components
         3) compare this reconstructed address with the provided `street_address` col
-            3a) This is because we have found DEEDs that were associated with 
-                an opa_account_num but didn't turn out to be actually for that 
+            3a) This is because we have found DEEDs that were associated with
+                an opa_account_num but didn't turn out to be actually for that
                 property.
         4) Look at the recording_date provided (or use datetime.now() if None provided)
         5) Find the most recent DEED grantee before the given recording_date
@@ -343,9 +349,13 @@ class RealEstateTransfers(PhillyCartoTable):
         )
         df = list_result.to_dataframe()
         if df.empty:
-            df_location = Properties().query_by_opa_account_numbers([opa_account_number]).to_dataframe()
+            df_location = (
+                Properties()
+                .query_by_opa_account_numbers([opa_account_number])
+                .to_dataframe()
+            )
             if not df_location.empty:
-                location_address = df_location.iloc[0]['location']
+                location_address = df_location.iloc[0]["location"]
 
         """
         (((ADDRESS_LOW >= 5427 AND ADDRESS_LOW <= 5427)

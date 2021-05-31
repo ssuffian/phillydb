@@ -19,7 +19,9 @@ def search_method_sql(search_to_match, search_method):
 
 
 def construct_search_query(
-    search_to_match, search_type, search_method="contains",
+    search_to_match,
+    search_type,
+    search_method="contains",
 ):
     """
     Takes in a search query and method of searching, and constructs a SQL subquery
@@ -31,14 +33,20 @@ def construct_search_query(
     search_to_match: str
     search_type: str
         One of: ['mailing_address', 'owner', 'location_by_owner',
-            'location_by_mailing_address'
+            'location_by_mailing_address', 'parcel_number'
             ]
     search_method: str
         One of: ['contains', 'starts with', 'ends with', 'equals']
     """
     search_to_match = search_method_sql(search_to_match.upper(), search_method)
-
-    if search_type == "owner":
+    if search_type == "parcel_number":
+        opa_account_numbers_sql = f"""
+            SELECT opp.parcel_number FROM opa_properties_public opp 
+                WHERE (
+                    opp.parcel_number LIKE '{search_to_match}'
+                )
+        """
+    elif search_type == "owner":
         opa_account_numbers_sql = f"""
             SELECT opp.parcel_number FROM opa_properties_public opp 
                 WHERE (
