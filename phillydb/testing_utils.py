@@ -39,10 +39,10 @@ class MockRealEstateTaxRevenueResponse(MockResponse):
 
 class MockCartoResponse(MockResponse):
     def json(self):
-        data = self.data if self.data is not None else [{'opa_account_num': '123'}]
+        data = self.data if self.data is not None else [{"opa_account_num": "123"}]
         if self.data is None:
-            data = [{'opa_account_num': '123'}]
+            data = [{"opa_account_num": "123"}]
         elif self.data:
             return {"rows": data, "fields": data[0]}
         else:
-            return {'rows': [], 'fields': {}}
+            return {"rows": [], "fields": {}}

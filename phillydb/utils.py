@@ -13,7 +13,7 @@ def get_normalized_address(address):
     Returns
     -------
     str
-        A normalized string representation of an address. 
+        A normalized string representation of an address.
     """
     p = PassyunkParser()
     # pass through philly-specific passyunk library

@@ -1,7 +1,8 @@
 Development
 -----------
 
-* Placeholder
+* Added fuzzywuzzy and us-scourgify dependencies.
+* Added owner-based search.
 
 0.1.0
 -----

@@ -64,5 +64,3 @@ def label_city_owned_properties(df, remove=False, city_owned_label="is_city_owne
             df[city_owned_label] = False
             df.loc[df.query(city_owned_query)] = True
     return df
-
-

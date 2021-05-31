@@ -14,7 +14,9 @@ def test_construct_search_query():
     assert "LIKE '%LAST FIRST%'" in sql.upper()
 
     sql = construct_search_query(
-        search_to_match="LAST FIRST", search_type="owner", search_method="starts with",
+        search_to_match="LAST FIRST",
+        search_type="owner",
+        search_method="starts with",
     )
     assert "LIKE 'LAST FIRST%'" in sql.upper()
 
@@ -48,5 +50,7 @@ def test_construct_search_query():
 
     with pytest.raises(SearchTypeNotImplementedError):
         construct_search_query(
-            search_to_match="LAST FIRST", search_type="abc", search_method="contains",
+            search_to_match="LAST FIRST",
+            search_type="abc",
+            search_method="contains",
         )

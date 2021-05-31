@@ -126,12 +126,12 @@ class PhillyQueryResult(ABC):
                 )
                 break
 
-        '''
+        """
         # No longer removing city-owned properties
         df = label_city_owned_properties(
             df, remove=self.remove_all_city_owned_properties
         )
-        '''
+        """
         return df
 
 
@@ -176,7 +176,7 @@ class PhillyCartoTable(ABC):
         self.arcgis_table_name = cartodb_table_name.upper()
         self.title = title if title else self.name.title()
         self.sql_alias = sql_alias if sql_alias else self.cartodb_table_name[:3]
-        self.default_columns = [] # set by subclass
+        self.default_columns = []  # set by subclass
         self.dt_column = None
         self.open_data_philly_table_url_name = open_data_philly_table_url_name
         self.schema_application_id = schema_application_id
@@ -195,6 +195,7 @@ class PhillyCartoTable(ABC):
             "mailing_address_2",
             "mailing_city_state",
             "parcel_number",
+            "year_built",
         ]
         self.city_owned_prop_cols = list(CITY_OWNED_PROPERTY_FIELDS.keys())
 
@@ -228,10 +229,13 @@ class PhillyCartoTable(ABC):
         ).execute(remove_all_city_owned_properties=False)
 
     def query_arcgis(
-        self, where_sql, columns=None,
+        self,
+        where_sql,
+        columns=None,
     ):
         return PhillyArcgisQuery(
-            where_sql=where_sql, table=self.arcgis_table_name,
+            where_sql=where_sql,
+            table=self.arcgis_table_name,
         ).execute()
 
     def query_by_opa_account_numbers(
@@ -255,7 +259,7 @@ class PhillyCartoTable(ABC):
             default columns.
         opa_properties_public_joined_columns
             Columns to include from the properties table that all tables (other than
-            the properties table itself) are joined to. 
+            the properties table itself) are joined to.
 
         """
         dt_column = dt_column if dt_column else self.dt_column
@@ -321,7 +325,12 @@ class PhillyCartoTable(ABC):
         return PhillyCartoQuery(sql).execute()
 
     def _get_sql_for_query_by_single_str_column(
-        self, search_column, col_str, joined_col_str, search_to_match, limit_str,
+        self,
+        search_column,
+        col_str,
+        joined_col_str,
+        search_to_match,
+        limit_str,
     ):
         return f"""
         SELECT {col_str}, {joined_col_str}
@@ -418,7 +427,9 @@ class RealEstateTaxRevenue(ABC):
         self.rate_limit_wait_secs = rate_limit_wait_secs
 
     def query_by_opa_account_numbers(
-        self, opa_account_numbers, remove_all_city_owned_properties=True,
+        self,
+        opa_account_numbers,
+        remove_all_city_owned_properties=True,
     ):
         """
         Parameters

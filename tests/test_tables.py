@@ -20,6 +20,6 @@ def test_real_estate_tax_revenue(opa_account_numbers, monkeypatch, pytestconfig)
 
 
 def test_philly_carto_query_execute_error(monkeypatch, pytestconfig):
-    maybe_monkeypatch_response(monkeypatch, pytestconfig,  response_override={})
+    maybe_monkeypatch_response(monkeypatch, pytestconfig, response_override={})
     with pytest.raises(ValueError):
         rows = PhillyCartoQuery("SELECTFROMSQLTABLESYNTAXERROR").execute()
