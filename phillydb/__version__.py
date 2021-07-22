@@ -1,2 +1,2 @@
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __description__ = "A python client for accessing open property data for Philadelphia"
