@@ -11,8 +11,10 @@ def test_owner_query():
     )
 
     license_obj = Licenses().query_by_opa_account_numbers(
-            owner_query_obj.parcel_num_sql
-        )
+        owner_query_obj.parcel_num_sql
+    )
     license_df = license_obj.to_dataframe()
-    filtered_license_df = owner_query_result_obj.get_filtered_df(license_df, Licenses().dt_column)
+    filtered_license_df = owner_query_result_obj.get_filtered_df(
+        license_df, Licenses().dt_column
+    )
     assert len(license_df) >= len(filtered_license_df)

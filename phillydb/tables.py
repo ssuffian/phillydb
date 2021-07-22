@@ -115,15 +115,15 @@ class PhillyQueryResult(ABC):
             df["link_cyclomedia_street_view"] = df["location"].apply(
                 get_street_view_link
             )
+            df["link_license_inspections"] = df["location"].apply(
+                get_license_inspections_link
+            )
         for opa_account_col in ["opa_account_num", "parcel_number"]:
             if opa_account_col in columns:
                 df["link_property_phila_gov"] = df[opa_account_col].apply(
                     get_property_phila_gov_link
                 )
                 df["link_atlas"] = df[opa_account_col].apply(get_atlas_link)
-                df["link_license_inspections"] = df[opa_account_col].apply(
-                    get_license_inspections_link
-                )
                 break
 
         """

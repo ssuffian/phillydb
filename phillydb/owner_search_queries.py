@@ -27,9 +27,7 @@ class OwnerQuery:
         # using the owners_list. (TODO)
         # They would modify the parcel_num_sql_lists below
         all_parcel_num_sql = "\nUNION ALL\n".join(self.parcel_num_sql_list)
-        self.parcel_num_sql = (
-            f"SELECT distinct(parcel_number) from ({all_parcel_num_sql}) as unique_parcels"
-        )
+        self.parcel_num_sql = f"SELECT distinct(parcel_number) from ({all_parcel_num_sql}) as unique_parcels"
 
     def _set_owner_df_and_parcel_num_sql(self):
         def _sql_string_replace(x):
@@ -77,7 +75,7 @@ class OwnerQueryResult:
             first_owner["likely_owner"] = (
                 first_owner["grantors"] if first_owner["grantors"] else "?"
             )
-            first_owner["start_dt"] = first_owner['year_built']
+            first_owner["start_dt"] = first_owner["year_built"]
             first_owner["end_dt"] = first_owner["deed_date"]
 
             combined_df = pd.concat(
@@ -91,6 +89,8 @@ class OwnerQueryResult:
             ).sort_values(["parcel_number", "end_dt"])
             combined_df["street_address"] = combined_df["street_address"].bfill()
             combined_df["location"] = combined_df["location"].bfill()
+            combined_df["lat"] = combined_df["lat"].bfill()
+            combined_df["lng"] = combined_df["lng"].bfill()
             combined_df["unit"] = combined_df["unit"].bfill()
             return combined_df
 
@@ -105,15 +105,23 @@ class OwnerQueryResult:
                 "end_dt",
                 "street_address",
                 "location",
+                "lat",
+                "lng",
                 "unit",
                 "unit_num",
             ]
         ]
 
+        def _check_owner_names_are_equivalent(owner_1, owner_2):
+            # owner in opa_properties_public get cut off at 25 chars
+            return owner_1 == owner_2 or (
+                len(owner_1) == 25 and owner_2.startswith(owner_1)
+            )
+
         def _check_owner_in_list(x, owners_list):
             return any(
                 [
-                    poss_owner == part_owner
+                    _check_owner_names_are_equivalent(poss_owner, part_owner)
                     for poss_owner in owners_list
                     for part_owner in x.split(";")
                 ]
@@ -380,6 +388,7 @@ def get_deeds_list(parcel_numbers_str):
     """
     query = f"""
     SELECT opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, 
+    ST_Y(opa.the_geom) AS lat, ST_X(opa.the_geom) AS lng,
     rtt.opa_account_num, rtt.unit_num,
     rtt.grantors, rtt.grantees, 
     rtt.street_address, rtt.recording_date,
@@ -397,6 +406,7 @@ def get_deeds_list(parcel_numbers_str):
     ) rtt
     RIGHT JOIN (
         SELECT
+        the_geom,
         parcel_number,
         year_built,
         owner_1, owner_2,
@@ -414,12 +424,13 @@ def get_deeds_list(parcel_numbers_str):
     ) opa ON
     {where}
     WHERE opa.parcel_number in ({parcel_numbers_str})
-    GROUP BY opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, rtt.opa_account_num,
+    GROUP BY opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, 
+    lat, lng,
+    rtt.opa_account_num,
         rtt.grantors, rtt.grantees, rtt.street_address, opa.location, opa.unit, rtt.unit_num,
         rtt.recording_date, opa.recording_date
     ORDER BY opa.parcel_number, rtt.recording_date
     """
-
     params = {"q": query}
     opa_properties_deeds = requests.get(
         f"""https://phl.carto.com/api/v2/sql""", params=params
@@ -427,4 +438,4 @@ def get_deeds_list(parcel_numbers_str):
     try:
         return pd.DataFrame(opa_properties_deeds["rows"])
     except:
-        raise ValueError(opa_properties_deeds)
+        raise ValueError(f"{opa_properties_deeds}\n\n{parcel_numbers_str}\n{query}")

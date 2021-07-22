@@ -1,7 +1,8 @@
 Development
 -----------
 
-* Placeholder
+* Add lat and lng as outputs of owner search query.
+* Move li.phila.gov link from parcel number to address.
 
 0.2.1
 -----

@@ -90,7 +90,7 @@ def test_query_by_single_str_column(monkeypatch, pytestconfig):
     assert not df.empty
 
     license_obj = carto_tables.Licenses()
-    result_columns = ["licensetype", "opa_account_num"]
+    result_columns = ["licensetype", "opa_account_num", "location"]
     columns = result_columns
 
     output_rows = [{c: "2020-01-01 12:00:00" for c in columns}]
@@ -173,7 +173,7 @@ def test_guess_property_ownership(monkeypatch, pytestconfig):
     assert owner_dict["owner"] == None
 
 
-def test_query_with_arcgis(monkeypatch, pytestconfig):
+def test_query_with_arcgis():#monkeypatch, pytestconfig):
     real_estate = carto_tables.RealEstateTransfers()
     # opa_account_number = "881061500"
     df = real_estate.query_arcgis(

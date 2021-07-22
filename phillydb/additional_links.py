@@ -10,5 +10,5 @@ def get_atlas_link(opa_account_number):
     return f"https://atlas.phila.gov/{opa_account_number}"
 
 
-def get_license_inspections_link(opa_account_number):
-    return f"https://li.phila.gov/#summary?address={opa_account_number}"
+def get_license_inspections_link(location):
+    return f"https://li.phila.gov/property-history/search?address={location}"
