@@ -1,12 +1,8 @@
 Development
 -----------
 
-* Placeholder
-
-0.2.2
------
-
-* Placeholder
+* When guessing earliest ownership, if year_built==0000 then set to earliest receipt date.
+* Include mailing address-shared owner options.
 
 0.2.2
 -----

@@ -12,7 +12,7 @@ def score_owners(x, search_name):
 class OwnerQuery:
     """Step 1: Takes owner names and generates a parcel num sql query"""
 
-    def __init__(self, owner_names):
+    def __init__(self, owner_names, include_owners_with_same_mailing_address=True):
         # if passed a single owner name, put it in a list
         if type(owner_names) == str:
             owner_names = [owner_names]
@@ -20,6 +20,9 @@ class OwnerQuery:
 
         self.parcel_num_sql_list = []
         self.owner_df = None
+        self.include_owners_with_same_mailing_address = (
+            include_owners_with_same_mailing_address
+        )
         self._set_owner_df_and_parcel_num_sql()
         self.owners_list = self.owner_df["owner_name"].unique()
 
@@ -43,6 +46,7 @@ class OwnerQuery:
                 include_opa_properties_public=True,
                 include_rtt_summary=True,
                 include_business_licenses=True,
+                opa_properties_public_matches_on_mailing_address=self.include_owners_with_same_mailing_address,
             )
             if not single_owner_df.empty:
                 single_owner_df["score"] = single_owner_df.apply(
@@ -75,7 +79,12 @@ class OwnerQueryResult:
             first_owner["likely_owner"] = (
                 first_owner["grantors"] if first_owner["grantors"] else "?"
             )
-            first_owner["start_dt"] = first_owner["year_built"]
+            # if year built is 0000, assume it was constructed at the first deed
+            first_owner["start_dt"] = (
+                first_owner["year_built"]
+                if first_owner["year_built"] != "0000"
+                else first_owner["deed_date"]
+            )
             first_owner["end_dt"] = first_owner["deed_date"]
 
             combined_df = pd.concat(
@@ -174,6 +183,7 @@ def get_complete_owner_list(
     include_opa_properties_public=True,
     include_rtt_summary=True,
     include_business_licenses=True,
+    opa_properties_public_matches_on_mailing_address=False,
 ):
     owners_list = []
     parcel_num_subquery_list = []
@@ -182,8 +192,43 @@ def get_complete_owner_list(
         opa_properties_public_query = f"""
             SELECT owner_1, owner_2, parcel_number
             FROM opa_properties_public
-            where owner_1 like '{owner_name}' or owner_2 like '{owner_name}'
+            WHERE owner_1 like '{owner_name}' or owner_2 like '{owner_name}'
         """
+        opa_owners_result = requests.get(
+            f"""
+            https://phl.carto.com/api/v2/sql?q={opa_properties_public_query}
+            """
+        ).json()["rows"]
+        opa_owner_1_list = list(
+            set([r["owner_1"] for r in opa_owners_result if r["owner_1"]])
+        )
+        opa_owner_2_list = list(
+            set([r["owner_2"] for r in opa_owners_result if r["owner_2"]])
+        )
+        owners_list.extend(
+            [
+                {"owner_name": y.strip(), "source": "opa_properties_public.owner_1"}
+                for x in opa_owner_1_list
+                for y in x.split(";")
+            ]
+            + [
+                {"owner_name": y.strip(), "source": "opa_properties_public.owner_2"}
+                for x in opa_owner_2_list
+                for y in x.split(";")
+            ]
+        )
+        parcel_num_subquery_list.append(
+            f"SELECT distinct(inner_search_opa.parcel_number) from ({opa_properties_public_query}) inner_search_opa"
+        )
+    if opa_properties_public_matches_on_mailing_address:
+        opa_properties_public_query = f"""
+            SELECT owner_1, owner_2, parcel_number
+            FROM opa_properties_public
+            WHERE mailing_street in (
+                SELECT mailing_street from opa_properties_public
+                WHERE owner_1 like '{owner_name}' or owner_2 like '{owner_name}'
+            )
+            """
         opa_owners_result = requests.get(
             f"""
             https://phl.carto.com/api/v2/sql?q={opa_properties_public_query}

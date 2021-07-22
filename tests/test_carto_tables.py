@@ -173,7 +173,7 @@ def test_guess_property_ownership(monkeypatch, pytestconfig):
     assert owner_dict["owner"] == None
 
 
-def test_query_with_arcgis():#monkeypatch, pytestconfig):
+def test_query_with_arcgis():  # monkeypatch, pytestconfig):
     real_estate = carto_tables.RealEstateTransfers()
     # opa_account_number = "881061500"
     df = real_estate.query_arcgis(
