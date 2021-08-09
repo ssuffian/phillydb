@@ -23,14 +23,15 @@ def get_normalized_address(address):
         k: v if v else "" for k, v in normalize_address_record(address).items()
     }
     # remove multiple spaces and combine
-    return " ".join(
+    combined = " ".join(
         (
             n_address_dict["address_line_1"]
-            + n_address_dict["address_line_2"]
-            + n_address_dict["city"]
-            + n_address_dict["state"]
-            + n_address_dict["postal_code"]
+            + " " + n_address_dict["address_line_2"]
+            + " " + n_address_dict["city"]
+            + " " + n_address_dict["state"]
+            + " " + n_address_dict["postal_code"]
         )
         .strip()
         .split()
     )
+    return combined

@@ -3,6 +3,11 @@ Development
 
 * Placeholder
 
+0.2.4
+-----
+
+* Fix bug with normalized address.
+
 0.2.3
 -----
 
