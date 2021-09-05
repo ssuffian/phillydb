@@ -1,6 +1,11 @@
 Development
 -----------
 
+* Placeholder
+
+0.2.5
+-----
+
 * Add market_value to owner query results.
 
 0.2.4
