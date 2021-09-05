@@ -48,6 +48,8 @@ class Properties(PhillyCartoTable):
             "homestead_exemption",
             "year_built",
             "year_built_estimate",
+            "market_value",
+            "market_value_date",
         ]
 
     def _get_sql_for_query_by_opa_account_numbers(

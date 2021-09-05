@@ -109,6 +109,7 @@ class OwnerQueryResult:
                 "grantees",
                 "owner_1",
                 "owner_2",
+                "market_value",
                 "likely_owner",
                 "start_dt",
                 "end_dt",
@@ -433,6 +434,7 @@ def get_deeds_list(parcel_numbers_str):
     """
     query = f"""
     SELECT opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, 
+    opa.market_value,
     ST_Y(opa.the_geom) AS lat, ST_X(opa.the_geom) AS lng,
     rtt.opa_account_num, rtt.unit_num,
     rtt.grantors, rtt.grantees, 
@@ -456,6 +458,7 @@ def get_deeds_list(parcel_numbers_str):
         year_built,
         owner_1, owner_2,
         location,
+        market_value,
         category_code_description, zoning,
         cast(house_number as int) as address_low,
         cast(house_extension as int) as address_high,
@@ -469,7 +472,7 @@ def get_deeds_list(parcel_numbers_str):
     ) opa ON
     {where}
     WHERE opa.parcel_number in ({parcel_numbers_str})
-    GROUP BY opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, 
+    GROUP BY opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, opa.market_value, 
     lat, lng,
     rtt.opa_account_num,
         rtt.grantors, rtt.grantees, rtt.street_address, opa.location, opa.unit, rtt.unit_num,
