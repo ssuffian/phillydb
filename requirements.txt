@@ -1,5 +1,5 @@
 # jupyter
-jupyterlab==3.0.8
+jupyterlab==3.0.17
 
 # testing
 pytest==4.5.0
