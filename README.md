@@ -4,7 +4,7 @@
 
 <p>This library is a python client that provides up-to-date open data from the City of Philadelphia. The data comes from the following sources:</p>
 <ul>
-<li><a target='_blank' href='https://www.opendataphilly.org/dataset/opa-property-assessments'>opa-property-assessments</a> (<a target='_blank' href='https://cityofphiladelphia.github.io/carto-api-explorer/#opa_properties_public'>CartoDB</a>)</li>
+<li><a target='_blank' href='https://www.opendataphilly.org/dataset/opa-property-assessments'>opa-property-assessments</a> (<a target='_blank' href='https://cityofphiladelphia.github.io/carto-api-explorer/#opa_properties_public'>CartoDB</a>) (<a target='_blank' href='https://colab.research.google.com/github/ssuffian/phillydb/blob/main/notebooks/opa_properties_public.ipynb'>Colab</a>)</li>
 <li><a target='_blank' href='https://www.opendataphilly.org/dataset/licenses-and-inspections-violations'>licenses-and-inspections-violations</a> (<a target='_blank' href='https://cityofphiladelphia.github.io/carto-api-explorer/#violations'>CartoDB</a>)</li>
 <li><a target='_blank' href='https://www.opendataphilly.org/dataset/licenses-and-inspections-business-licenses'>licenses-and-inspections-business-licenses</a> (<a target='_blank' href='https://cityofphiladelphia.github.io/carto-api-explorer/#business_licenses'>CartoDB</a>)</li>
 <li><a target='_blank' href='https://www.opendataphilly.org/dataset/licenses-and-inspections-building-permits'>licenses-and-inspections-building-permits</a> (<a target='_blank' href='https://cityofphiladelphia.github.io/carto-api-explorer/#permits'>CartoDB</a>)</li>
