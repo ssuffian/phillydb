@@ -102,7 +102,6 @@ class OwnerQueryResult:
             combined_df["lng"] = combined_df["lng"].bfill()
             combined_df["unit"] = combined_df["unit"].bfill()
             return combined_df
-
         timeline_df = deeds_df.groupby("parcel_number").apply(_deed_timeline)[
             [
                 "parcel_number",
@@ -119,6 +118,7 @@ class OwnerQueryResult:
                 "lng",
                 "unit",
                 "unit_num",
+                "mailing_care_of"
             ]
         ]
 
@@ -128,12 +128,11 @@ class OwnerQueryResult:
                 len(owner_1) == 25 and owner_2.startswith(owner_1)
             )
 
-        def _check_owner_in_list(x, owners_list):
+        def _check_owner_in_list(part_owner, owners_list):
             return any(
                 [
                     _check_owner_names_are_equivalent(poss_owner, part_owner)
                     for poss_owner in owners_list
-                    for part_owner in x.split(";")
                 ]
             )
 
@@ -435,6 +434,7 @@ def get_deeds_list(parcel_numbers_str):
     query = f"""
     SELECT opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, 
     opa.market_value,
+    opa.mailing_care_of,
     ST_Y(opa.the_geom) AS lat, ST_X(opa.the_geom) AS lng,
     rtt.opa_account_num, rtt.unit_num,
     rtt.grantors, rtt.grantees, 
@@ -456,7 +456,7 @@ def get_deeds_list(parcel_numbers_str):
         the_geom,
         parcel_number,
         year_built,
-        owner_1, owner_2,
+        owner_1, owner_2, mailing_care_of,
         location,
         market_value,
         category_code_description, zoning,
@@ -472,7 +472,7 @@ def get_deeds_list(parcel_numbers_str):
     ) opa ON
     {where}
     WHERE opa.parcel_number in ({parcel_numbers_str})
-    GROUP BY opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, opa.market_value, 
+    GROUP BY opa.mailing_care_of, opa.owner_1,opa.owner_2, opa.parcel_number, opa.year_built, opa.market_value, 
     lat, lng,
     rtt.opa_account_num,
         rtt.grantors, rtt.grantees, rtt.street_address, opa.location, opa.unit, rtt.unit_num,
@@ -480,10 +480,14 @@ def get_deeds_list(parcel_numbers_str):
     ORDER BY opa.parcel_number, rtt.recording_date
     """
     params = {"q": query}
-    opa_properties_deeds = requests.get(
-        f"""https://phl.carto.com/api/v2/sql""", params=params
-    ).json()
     try:
-        return pd.DataFrame(opa_properties_deeds["rows"])
+        opa_properties_deeds = requests.get(
+            f"""https://phl.carto.com/api/v2/sql""", params=params
+        )
     except:
-        raise ValueError(f"{opa_properties_deeds}\n\n{parcel_numbers_str}\n{query}")
+        raise ValueError(query)
+    try:
+        opa_properties_deeds_json = opa_properties_deeds.json()
+        return pd.DataFrame(opa_properties_deeds_json["rows"])
+    except:
+        raise ValueError(f"{opa_properties_deeds}\n\n{parcel_numbers_str}\n\n------QUERY------\n{query}")
